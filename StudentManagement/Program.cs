@@ -1,10 +1,15 @@
+using StudentManagement.Data;
+using StudentManagement.Filters;
 using StudentManagement.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<ResponseWrapperFilter>();
+});
 
 builder.Services.AddScoped<IStudentService, StudentService>();
 

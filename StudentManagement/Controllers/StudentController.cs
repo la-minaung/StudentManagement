@@ -6,7 +6,7 @@ namespace StudentManagement.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class StudentController : Controller
+    public class StudentController : ControllerBase
     {
 
         private readonly IStudentService _studentService;
@@ -19,14 +19,20 @@ namespace StudentManagement.Controllers
         [HttpGet]
         public ActionResult<List<StudentDto>> GetAll()
         {
-            return Ok(_studentService.GetAllStudents());
+            var students = _studentService.GetAllStudents();
+            return Ok(students);
         }
 
         [HttpGet("{id}")]
         public ActionResult<StudentDto> GetById(int id)
         {
             var student = _studentService.GetStudentById(id);
-            if (student == null) return NotFound();
+
+            if (student == null)
+            {
+                return NotFound($"Student with ID {id} not found.");
+            }
+
             return Ok(student);
         }
 
@@ -41,16 +47,23 @@ namespace StudentManagement.Controllers
         public IActionResult Update(int id, CreateStudentDto updatedStudent)
         {
             var result = _studentService.UpdateStudent(id, updatedStudent);
-            if (!result) return NotFound();
-            return NoContent();
+            if (!result)
+            {
+                return NotFound($"Cannot update. Student with ID {id} not found.");
+            }
+
+            return Ok("Student updated successfully.");
         }
 
         [HttpDelete("{id}")]
         public IActionResult Delete(int id)
         {
             var result = _studentService.DeleteStudent(id);
-            if (!result) return NotFound();
-            return NoContent();
+            if (!result)
+            {
+                return NotFound($"Cannot delete. Student with ID {id} not found.");
+            }
+            return Ok("Student deleted successfully.");
         }
     }
 }
