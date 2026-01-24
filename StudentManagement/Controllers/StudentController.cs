@@ -17,16 +17,16 @@ namespace StudentManagement.Controllers
         }
 
         [HttpGet]
-        public ActionResult<List<StudentDto>> GetAll()
+        public async Task<ActionResult<List<StudentDto>>> GetAll()
         {
-            var students = _studentService.GetAllStudents();
+            var students = await _studentService.GetAllStudents();
             return Ok(students);
         }
 
         [HttpGet("{id}")]
-        public ActionResult<StudentDto> GetById(int id)
+        public async Task<ActionResult<StudentDto>> GetById(int id)
         {
-            var student = _studentService.GetStudentById(id);
+            var student = await _studentService.GetStudentById(id);
 
             if (student == null)
             {
@@ -37,16 +37,16 @@ namespace StudentManagement.Controllers
         }
 
         [HttpPost]
-        public ActionResult<StudentDto> Create(CreateStudentDto createStudentDto)
+        public async Task<ActionResult<StudentDto>> Create(CreateStudentDto createStudentDto)
         {
-            var createdStudent = _studentService.AddStudent(createStudentDto);
+            var createdStudent = await _studentService.AddStudent(createStudentDto);
             return CreatedAtAction(nameof(GetById), new { id = createdStudent.Id }, createdStudent);
         }
 
         [HttpPut("{id}")]
-        public IActionResult Update(int id, CreateStudentDto updatedStudent)
+        public async Task<IActionResult> Update(int id, CreateStudentDto updatedStudent)
         {
-            var result = _studentService.UpdateStudent(id, updatedStudent);
+            var result = await _studentService.UpdateStudent(id, updatedStudent);
             if (!result)
             {
                 return NotFound($"Cannot update. Student with ID {id} not found.");
@@ -56,9 +56,9 @@ namespace StudentManagement.Controllers
         }
 
         [HttpDelete("{id}")]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var result = _studentService.DeleteStudent(id);
+            var result = await _studentService.DeleteStudent(id);
             if (!result)
             {
                 return NotFound($"Cannot delete. Student with ID {id} not found.");
