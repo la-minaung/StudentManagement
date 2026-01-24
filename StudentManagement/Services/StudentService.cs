@@ -1,4 +1,6 @@
-﻿using StudentManagement.DTOs;
+﻿using Microsoft.EntityFrameworkCore;
+using StudentManagement.Data;
+using StudentManagement.DTOs;
 using StudentManagement.Models;
 
 namespace StudentManagement.Services
@@ -6,25 +8,25 @@ namespace StudentManagement.Services
     public class StudentService : IStudentService
     {
 
-        private static List<Student> _students = new List<Student>
-        {
-            new Student { Id = 1, FirstName = "John", LastName = "Doe", Age = 20, Email = "john@example.com" },
-            new Student { Id = 2, FirstName = "Jane", LastName = "Smith", Age = 22, Email = "jane@example.com" }
-        };
+        private readonly ApplicationDbContext _context;
 
-        public StudentDto AddStudent(CreateStudentDto newStudentDto)
+        public StudentService(ApplicationDbContext context)
         {
-            var newId = _students.Count > 0 ? _students.Max(s => s.Id) + 1 : 1;
+            _context = context;
+        }
+
+        public async Task<StudentDto> AddStudent(CreateStudentDto newStudentDto)
+        {
             var newStudent = new Student
             {
-                Id = newId,
                 FirstName = newStudentDto.FirstName,
                 LastName = newStudentDto.LastName,
                 Email = newStudentDto.Email,
                 Age = newStudentDto.Age
             };
 
-            _students.Add(newStudent);
+            await _context.Students.AddAsync(newStudent);
+            await _context.SaveChangesAsync();
 
             return new StudentDto
             {
@@ -35,19 +37,23 @@ namespace StudentManagement.Services
             };
         }
 
-        public bool DeleteStudent(int id)
+        public async Task<bool> DeleteStudent(int id)
         {
-            var student = _students.FirstOrDefault(x => x.Id == id);
+            var student = await _context.Students.FindAsync(id);
             if (student == null) return false;
 
-            _students.Remove(student);
-            return true;
+            _context.Students.Remove(student);
 
+            await _context.SaveChangesAsync();
+
+            return true;
         }
 
-        public List<StudentDto> GetAllStudents()
+        public async Task<List<StudentDto>> GetAllStudents()
         {
-            return _students.Select(x => new StudentDto
+            var students = await _context.Students.AsNoTracking().ToListAsync();
+
+            return students.Select(x => new StudentDto
             {
                 Id = x.Id,
                 FullName = $"{x.FirstName} {x.LastName}",
@@ -56,9 +62,10 @@ namespace StudentManagement.Services
             }).ToList();
         }
 
-        public StudentDto? GetStudentById(int id)
+        public async Task<StudentDto?> GetStudentById(int id)
         {
-            var student = _students.FirstOrDefault(x => x.Id == id);
+            var student = await _context.Students.FindAsync(id);
+
             if (student == null) return null;
 
             return new StudentDto
@@ -70,15 +77,18 @@ namespace StudentManagement.Services
             };
         }
 
-        public bool UpdateStudent(int id, CreateStudentDto updateStudent)
+        public async Task<bool> UpdateStudent(int id, CreateStudentDto updateStudent)
         {
-            var student = _students.FirstOrDefault(x => x.Id == id);
+            var student = await _context.Students.FindAsync(id);
             if (student == null) return false;
 
             student.FirstName = updateStudent.FirstName;
             student.LastName = updateStudent.LastName;
             student.Email = updateStudent.Email;
             student.Age = updateStudent.Age;
+
+            await _context.SaveChangesAsync();
+
             return true;
         }
     }

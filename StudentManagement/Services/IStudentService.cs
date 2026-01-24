@@ -4,10 +4,10 @@ namespace StudentManagement.Services
 {
     public interface IStudentService
     {
-        List<StudentDto> GetAllStudents();
-        StudentDto? GetStudentById(int id);
-        StudentDto AddStudent(CreateStudentDto newStudent);
-        bool UpdateStudent(int id, CreateStudentDto updateStudent);
-        bool DeleteStudent(int id);
+        Task<List<StudentDto>> GetAllStudents();
+        Task<StudentDto?> GetStudentById(int id);
+        Task<StudentDto> AddStudent(CreateStudentDto newStudent);
+        Task<bool> UpdateStudent(int id, CreateStudentDto updateStudent);
+        Task<bool> DeleteStudent(int id);
     }
 }
