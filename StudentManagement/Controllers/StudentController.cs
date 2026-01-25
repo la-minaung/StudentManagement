@@ -65,5 +65,11 @@ namespace StudentManagement.Controllers
             }
             return Ok("Student deleted successfully.");
         }
+
+        [HttpGet("error-test")]
+        public IActionResult TestError()
+        {
+            throw new Exception("This is a fake crash!");
+        }
     }
 }
