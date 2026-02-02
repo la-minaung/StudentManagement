@@ -30,14 +30,55 @@ namespace StudentManagement.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDto dto)
         {
-            var token = await _authService.Login(dto);
+            var authResult = await _authService.Login(dto);
 
-            if (token == null)
+            if (!authResult.Success)
             {
-                return Unauthorized("Invalid username or password.");
+                // Return the errors (e.g. "Invalid password")
+                return BadRequest(authResult.Errors);
             }
 
-            return Ok(new { Token = token });
+            // Return the Token AND the Refresh Token
+            return Ok(new
+            {
+                Token = authResult.Token,
+                RefreshToken = authResult.RefreshToken
+            });
+        }
+
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken([FromBody] TokenRequestDto tokenRequestDto)
+        {
+            if (ModelState.IsValid)
+            {
+                var result = await _authService.VerifyAndGenerateToken(tokenRequestDto);
+
+                if (result == null)
+                {
+                    return BadRequest(new AuthResultDto
+                    {
+                        Success = false,
+                        Errors = new List<string> { "Invalid tokens" }
+                    });
+                }
+
+                if (result.Success)
+                {
+                    return Ok(new
+                    {
+                        Token = result.Token,
+                        RefreshToken = result.RefreshToken
+                    });
+                }
+
+                return BadRequest(result);
+            }
+
+            return BadRequest(new AuthResultDto
+            {
+                Success = false,
+                Errors = new List<string> { "Invalid payload" }
+            });
         }
     }
 }
