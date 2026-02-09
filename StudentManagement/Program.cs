@@ -111,6 +111,20 @@ app.Use(async (context, next) =>
     logger.LogInformation("[After] Response: {StatusCode}", context.Response.StatusCode);
 });
 
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        // This will create "Admin" and "User" roles if they don't exist
+        await RoleSeeder.SeedRolesAsync(services);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("Error seeding roles: " + ex.Message);
+    }
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

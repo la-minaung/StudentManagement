@@ -50,13 +50,25 @@ namespace StudentManagement.Services
 
             var result = await _userManager.CreateAsync(user, registerDto.Password);
 
+            if (result.Succeeded)
+            {
+                var role = registerDto.Role;
+                if (role != "Admin" && role != "User")
+                {
+                    role = "User";
+                }
+
+                await _userManager.AddToRoleAsync(user, role);
+
+                return true;
+            }
+
             // If result.Succeeded is true, the user is saved in SQL DB
             return result.Succeeded;
         }
 
         private async Task<AuthResultDto> GenerateJwtToken(IdentityUser user)
         {
-
             var jwtTokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]!);
 
@@ -67,14 +79,16 @@ namespace StudentManagement.Services
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
+            var roles = await _userManager.GetRolesAsync(user);
+
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
+
             var tokenDescriptor = new SecurityTokenDescriptor
             {
-                Subject = new ClaimsIdentity(new[]
-                {
-                    new Claim(ClaimTypes.Name, user.UserName!),
-                    new Claim(ClaimTypes.NameIdentifier, user.Id),
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()) // Unique ID for this token
-                }),
+                Subject = new ClaimsIdentity(claims),
                 Expires = DateTime.UtcNow.AddMinutes(15),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
                 Issuer = _configuration["Jwt:Issuer"],
