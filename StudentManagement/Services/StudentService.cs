@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using StudentManagement.Data;
 using StudentManagement.DTOs;
 using StudentManagement.Models;
@@ -9,32 +10,22 @@ namespace StudentManagement.Services
     {
 
         private readonly ApplicationDbContext _context;
+        private readonly IMapper _mapper;
 
-        public StudentService(ApplicationDbContext context)
+        public StudentService(ApplicationDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         public async Task<StudentDto> AddStudent(CreateStudentDto newStudentDto)
         {
-            var newStudent = new Student
-            {
-                FirstName = newStudentDto.FirstName,
-                LastName = newStudentDto.LastName,
-                Email = newStudentDto.Email,
-                Age = newStudentDto.Age
-            };
+            var newStudent = _mapper.Map<Student>(newStudentDto);
 
             await _context.Students.AddAsync(newStudent);
             await _context.SaveChangesAsync();
 
-            return new StudentDto
-            {
-                Id = newStudent.Id,
-                FullName = $"{newStudent.FirstName} {newStudent.LastName}",
-                Email = newStudent.Email,
-                Age = newStudent.Age
-            };
+            return _mapper.Map<StudentDto>(newStudent);
         }
 
         public async Task<bool> DeleteStudent(int id)
@@ -53,13 +44,7 @@ namespace StudentManagement.Services
         {
             var students = await _context.Students.AsNoTracking().ToListAsync();
 
-            return students.Select(x => new StudentDto
-            {
-                Id = x.Id,
-                FullName = $"{x.FirstName} {x.LastName}",
-                Email = x.Email,
-                Age = x.Age
-            }).ToList();
+            return _mapper.Map<List<StudentDto>>(students);
         }
 
         public async Task<StudentDto?> GetStudentById(int id)
@@ -68,13 +53,7 @@ namespace StudentManagement.Services
 
             if (student == null) return null;
 
-            return new StudentDto
-            {
-                Id = student.Id,
-                FullName = $"{student.FirstName} {student.LastName}",
-                Age = student.Age,
-                Email = student.Email
-            };
+            return _mapper.Map<StudentDto>(student);
         }
 
         public async Task<bool> UpdateStudent(int id, CreateStudentDto updateStudent)
