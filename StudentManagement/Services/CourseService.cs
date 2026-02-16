@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using StudentManagement.Data;
 using StudentManagement.DTOs;
 using StudentManagement.Models;
@@ -8,10 +9,12 @@ namespace StudentManagement.Services
     public class CourseService : ICourseService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IMapper _mapper;
 
-        public CourseService(ApplicationDbContext context)
+        public CourseService(ApplicationDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         public async Task<List<CourseDto>> GetAllCourses()
@@ -22,7 +25,7 @@ namespace StudentManagement.Services
                 .AsNoTracking()
                 .ToListAsync();
 
-            return courses.Select(c => MapToDto(c)).ToList();
+            return _mapper.Map<List<CourseDto>>(courses);
         }
 
         public async Task<CourseDto?> GetCourseById(int id)
@@ -34,7 +37,7 @@ namespace StudentManagement.Services
 
             if (course == null) return null;
 
-            return MapToDto(course);
+            return _mapper.Map<CourseDto>(course);
         }
 
         public async Task<CourseDto?> AddCourse(CreateCourseDto createDto)
@@ -48,13 +51,7 @@ namespace StudentManagement.Services
             if (!teacherExists) return null;
 
             // 3. Create Entity
-            var course = new Course
-            {
-                Title = createDto.Title,
-                Credits = createDto.Credits,
-                DepartmentId = createDto.DepartmentId,
-                TeacherId = createDto.TeacherId
-            };
+            var course = _mapper.Map<Course>(createDto);
 
             _context.Courses.Add(course);
             await _context.SaveChangesAsync();
@@ -77,10 +74,7 @@ namespace StudentManagement.Services
                 if (!await _context.Teachers.AnyAsync(t => t.Id == updateDto.TeacherId)) return null;
             }
 
-            course.Title = updateDto.Title;
-            course.Credits = updateDto.Credits;
-            course.DepartmentId = updateDto.DepartmentId;
-            course.TeacherId = updateDto.TeacherId;
+            _mapper.Map(updateDto, course);
 
             _context.Courses.Update(course);
             await _context.SaveChangesAsync();
@@ -98,18 +92,5 @@ namespace StudentManagement.Services
             return true;
         }
 
-        private static CourseDto MapToDto(Course course)
-        {
-            return new CourseDto
-            {
-                Id = course.Id,
-                Title = course.Title,
-                Credits = course.Credits,
-                DepartmentId = course.DepartmentId,
-                DepartmentName = course.Department?.Name ?? "Unknown",
-                TeacherId = course.TeacherId,
-                TeacherName = (course.Teacher?.FirstName + " " + course.Teacher?.LastName).Trim()
-            };
-        }
     }
 }

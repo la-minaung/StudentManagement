@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using StudentManagement.Data;
 using StudentManagement.DTOs;
 using StudentManagement.Models;
@@ -8,10 +9,12 @@ namespace StudentManagement.Services
     public class EnrollmentService : IEnrollmentService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IMapper _mapper;
 
-        public EnrollmentService(ApplicationDbContext context)
+        public EnrollmentService(ApplicationDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         public async Task<EnrollmentDto?> EnrollStudent(CreateEnrollmentDto createDto)
@@ -32,25 +35,20 @@ namespace StudentManagement.Services
             if (exists) return null;
 
             // 4. Create Record
-            var enrollment = new Enrollment
+            var enrollment = _mapper.Map<Enrollment>(createDto);
+            if (enrollment.Grade == null)
             {
-                StudentId = createDto.StudentId,
-                CourseId = createDto.CourseId,
-                Grade = createDto.Grade ?? Models.Grade.InProgress
-            };
+                enrollment.Grade = Models.Grade.InProgress;
+            }
 
             _context.Enrollments.Add(enrollment);
             await _context.SaveChangesAsync();
 
-            return new EnrollmentDto
-            {
-                Id = enrollment.Id,
-                StudentId = student.Id,
-                StudentName = $"{student.FirstName} {student.LastName}",
-                CourseId = course.Id,
-                CourseTitle = course.Title,
-                Grade = enrollment.Grade.ToString()!
-            };
+            // Load navigation properties for mapping
+            await _context.Entry(enrollment).Reference(e => e.Student).LoadAsync();
+            await _context.Entry(enrollment).Reference(e => e.Course).LoadAsync();
+
+            return _mapper.Map<EnrollmentDto>(enrollment);
         }
 
         public async Task<List<EnrollmentDto>> GetStudentEnrollments(int studentId)
@@ -62,15 +60,7 @@ namespace StudentManagement.Services
                 .AsNoTracking()
                 .ToListAsync();
 
-            return enrollments.Select(e => new EnrollmentDto
-            {
-                Id = e.Id,
-                StudentId = e.StudentId,
-                StudentName = $"{e.Student!.FirstName} {e.Student.LastName}",
-                CourseId = e.CourseId,
-                CourseTitle = e.Course!.Title,
-                Grade = e.Grade?.ToString() ?? "Not Graded"
-            }).ToList();
+            return _mapper.Map<List<EnrollmentDto>>(enrollments);
         }
 
         public async Task<bool> UnenrollStudent(int id)

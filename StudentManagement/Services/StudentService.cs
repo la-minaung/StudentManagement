@@ -61,10 +61,7 @@ namespace StudentManagement.Services
             var student = await _context.Students.FindAsync(id);
             if (student == null) return false;
 
-            student.FirstName = updateStudent.FirstName;
-            student.LastName = updateStudent.LastName;
-            student.Email = updateStudent.Email;
-            student.Age = updateStudent.Age;
+            _mapper.Map(updateStudent, student);
 
             await _context.SaveChangesAsync();
 
