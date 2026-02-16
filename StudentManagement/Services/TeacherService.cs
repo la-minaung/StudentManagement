@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using StudentManagement.Data;
 using StudentManagement.DTOs;
 using StudentManagement.Models;
@@ -9,10 +10,12 @@ namespace StudentManagement.Services
     {
 
         private readonly ApplicationDbContext _context;
+        private readonly IMapper _mapper;
 
-        public TeacherService(ApplicationDbContext context)
+        public TeacherService(ApplicationDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         public async Task<TeacherDto?> AddTeacher(CreateTeacherDto createDto)
@@ -23,35 +26,20 @@ namespace StudentManagement.Services
                 return null;
             }
 
-            var teacher = new Teacher
-            {
-                FirstName = createDto.FirstName,
-                LastName = createDto.LastName,
-                Email = createDto.Email,
-                PhoneNumber = createDto.PhoneNumber,
-                Specialization = createDto.Specialization,
-                DepartmentId = createDto.DepartmentId
-            };
+            var teacher = _mapper.Map<Teacher>(createDto);
 
             _context.Teachers.Add(teacher);
             await _context.SaveChangesAsync();
+
+            // load full department object
+            await _context.Entry(teacher).Reference(t => t.Department).LoadAsync();
 
             var departmentName = await _context.Departments
                 .Where(d => d.Id == createDto.DepartmentId)
                 .Select(d => d.Name)
                 .FirstOrDefaultAsync();
 
-            return new TeacherDto
-            {
-                Id = teacher.Id,
-                FirstName = teacher.FirstName,
-                LastName = teacher.LastName,
-                Email = teacher.Email,
-                PhoneNumber = teacher.PhoneNumber,
-                Specialization = teacher.Specialization,
-                DepartmentId = teacher.DepartmentId,
-                DepartmentName = departmentName ?? "Unknown"
-            };
+            return _mapper.Map<TeacherDto>(teacher);
         }
 
         public async Task<List<TeacherDto>> GetAllTeachers()
@@ -61,17 +49,7 @@ namespace StudentManagement.Services
                 .AsNoTracking()
                 .ToListAsync();
 
-            return teachers.Select(t => new TeacherDto
-            {
-                Id = t.Id,
-                FirstName = t.FirstName,
-                LastName = t.LastName,
-                Email = t.Email,
-                PhoneNumber = t.PhoneNumber,
-                Specialization = t.Specialization,
-                DepartmentId = t.DepartmentId,
-                DepartmentName = t.Department?.Name ?? "Unknown"
-            }).ToList();
+            return _mapper.Map<List<TeacherDto>>(teachers);
         }
 
         public async Task<TeacherDto?> GetTeacherById(int id)
@@ -82,17 +60,7 @@ namespace StudentManagement.Services
 
             if (teacher == null) return null;
 
-            return new TeacherDto
-            {
-                Id = teacher.Id,
-                FirstName = teacher.FirstName,
-                LastName = teacher.LastName,
-                Email = teacher.Email,
-                PhoneNumber = teacher.PhoneNumber,
-                Specialization = teacher.Specialization,
-                DepartmentId = teacher.DepartmentId,
-                DepartmentName = teacher.Department?.Name ?? "Unknown"
-            };
+            return _mapper.Map<TeacherDto>(teacher);
         }
 
         public async Task<TeacherDto> UpdateTeacher(int id, CreateTeacherDto updateDto)
@@ -106,32 +74,14 @@ namespace StudentManagement.Services
                 if (!departmentExists) return null;
             }
 
-            teacher.FirstName = updateDto.FirstName;
-            teacher.LastName = updateDto.LastName;
-            teacher.Email = updateDto.Email;
-            teacher.PhoneNumber = updateDto.PhoneNumber;
-            teacher.Specialization = updateDto.Specialization;
-            teacher.DepartmentId = updateDto.DepartmentId;
+            _mapper.Map(updateDto, teacher);
 
             _context.Teachers.Update(teacher);
             await _context.SaveChangesAsync();
 
-            var departmentName = await _context.Departments
-                .Where(d => d.Id == teacher.DepartmentId)
-                .Select(d => d.Name)
-                .FirstOrDefaultAsync();
+            await _context.Entry(teacher).Reference(t => t.Department).LoadAsync();
 
-            return new TeacherDto
-            {
-                Id = teacher.Id,
-                FirstName = teacher.FirstName,
-                LastName = teacher.LastName,
-                Email = teacher.Email,
-                PhoneNumber = teacher.PhoneNumber,
-                Specialization = teacher.Specialization,
-                DepartmentId = teacher.DepartmentId,
-                DepartmentName = departmentName ?? "Unknown"
-            };
+            return _mapper.Map<TeacherDto>(teacher);
         }
 
         public async Task<bool> DeleteTeacher(int id)
