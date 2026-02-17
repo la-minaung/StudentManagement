@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using StudentManagement.Data;
 using StudentManagement.DTOs;
+using StudentManagement.Helpers;
 using StudentManagement.Models;
 
 namespace StudentManagement.Services
@@ -40,11 +41,48 @@ namespace StudentManagement.Services
             return true;
         }
 
-        public async Task<List<StudentDto>> GetAllStudents()
+        public async Task<List<StudentDto>> GetAllStudents(StudentQueryObject query)
         {
-            var students = await _context.Students.AsNoTracking().ToListAsync();
 
-            return _mapper.Map<List<StudentDto>>(students);
+            // 1. Start with AsQueryable
+            var students = _context.Students.AsQueryable();
+
+            // 2. Filtering
+            if (!string.IsNullOrWhiteSpace(query.SearchTerm))
+            {
+                var lowerSearch = query.SearchTerm.ToLower();
+                students = students.Where(s =>
+                    s.FirstName.ToLower().Contains(lowerSearch) ||
+                    s.LastName.ToLower().Contains(lowerSearch) ||
+                    s.Email.ToLower().Contains(lowerSearch));
+            }
+
+            // 3. Sorting
+            if (!string.IsNullOrWhiteSpace(query.SortBy))
+            {
+                if (query.SortBy.Equals("Name", StringComparison.OrdinalIgnoreCase))
+                {
+                    students = query.IsDescending
+                        ? students.OrderByDescending(s => s.FirstName)
+                        : students.OrderBy(s => s.FirstName);
+                }
+                else if (query.SortBy.Equals("Age", StringComparison.OrdinalIgnoreCase))
+                {
+                    students = query.IsDescending
+                        ? students.OrderByDescending(s => s.Age)
+                        : students.OrderBy(s => s.Age);
+                }
+            }
+
+            // 4. Pagination
+            var skipNumber = (query.PageNumber - 1) * query.PageSize;
+
+            var result = await students
+                .Skip(skipNumber)
+                .Take(query.PageSize)
+                .ToListAsync();
+
+            return _mapper.Map<List<StudentDto>>(result);
         }
 
         public async Task<StudentDto?> GetStudentById(int id)

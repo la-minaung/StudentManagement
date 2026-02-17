@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using StudentManagement.Data;
 using StudentManagement.DTOs;
+using StudentManagement.Helpers;
 using StudentManagement.Models;
 
 namespace StudentManagement.Services
@@ -42,14 +43,57 @@ namespace StudentManagement.Services
             return _mapper.Map<TeacherDto>(teacher);
         }
 
-        public async Task<List<TeacherDto>> GetAllTeachers()
+        public async Task<List<TeacherDto>> GetAllTeachers(TeacherQueryObject query)
         {
-            var teachers = await _context.Teachers
+
+            // 1. Start with Queryable + Include
+            var teachers = _context.Teachers
                 .Include(t => t.Department)
-                .AsNoTracking()
+                .AsQueryable();
+
+            // 2. Filter by Department (if provided)
+            if (query.DepartmentId.HasValue)
+            {
+                teachers = teachers.Where(t => t.DepartmentId == query.DepartmentId.Value);
+            }
+
+            // 3. Search (Name, Specialization, or Department Name)
+            if (!string.IsNullOrWhiteSpace(query.SearchTerm))
+            {
+                var lowerSearch = query.SearchTerm.ToLower();
+                teachers = teachers.Where(t =>
+                    t.FirstName.ToLower().Contains(lowerSearch) ||
+                    t.LastName.ToLower().Contains(lowerSearch) ||
+                    t.Specialization.ToLower().Contains(lowerSearch) ||
+                    t.Department.Name.ToLower().Contains(lowerSearch));
+            }
+
+            // 4. Sorting
+            if (!string.IsNullOrWhiteSpace(query.SortBy))
+            {
+                if (query.SortBy.Equals("Name", StringComparison.OrdinalIgnoreCase))
+                {
+                    teachers = query.IsDescending
+                        ? teachers.OrderByDescending(t => t.FirstName)
+                        : teachers.OrderBy(t => t.FirstName);
+                }
+                else if (query.SortBy.Equals("Specialization", StringComparison.OrdinalIgnoreCase))
+                {
+                    teachers = query.IsDescending
+                        ? teachers.OrderByDescending(t => t.Specialization)
+                        : teachers.OrderBy(t => t.Specialization);
+                }
+            }
+
+            // 5. Pagination
+            var skipNumber = (query.PageNumber - 1) * query.PageSize;
+
+            var result = await teachers
+                .Skip(skipNumber)
+                .Take(query.PageSize)
                 .ToListAsync();
 
-            return _mapper.Map<List<TeacherDto>>(teachers);
+            return _mapper.Map<List<TeacherDto>>(result);
         }
 
         public async Task<TeacherDto?> GetTeacherById(int id)

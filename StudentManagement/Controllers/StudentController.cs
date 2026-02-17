@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StudentManagement.DTOs;
+using StudentManagement.Helpers;
 using StudentManagement.Services;
 
 namespace StudentManagement.Controllers
@@ -19,9 +20,9 @@ namespace StudentManagement.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<StudentDto>>> GetAll()
+        public async Task<ActionResult<List<StudentDto>>> GetAll([FromQuery] StudentQueryObject query)
         {
-            var students = await _studentService.GetAllStudents();
+            var students = await _studentService.GetAllStudents(query);
             return Ok(students);
         }
 
