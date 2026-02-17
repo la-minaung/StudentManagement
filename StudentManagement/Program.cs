@@ -10,6 +10,8 @@ using StudentManagement.Services;
 using System.Text;
 using AutoMapper;
 using Microsoft.Extensions.DependencyInjection;
+using FluentValidation.AspNetCore;
+using FluentValidation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -97,6 +99,11 @@ builder.Services.AddSwaggerGen(options =>
         }
     });
 });
+
+
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddFluentValidationClientsideAdapters();
+builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
 
 var app = builder.Build();
 
