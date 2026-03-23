@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using StudentManagement.DTOs;
 using StudentManagement.Services;
 
@@ -6,6 +7,7 @@ namespace StudentManagement.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class EnrollmentController : ControllerBase
     {
         private readonly IEnrollmentService _enrollmentService;
@@ -16,6 +18,7 @@ namespace StudentManagement.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<EnrollmentDto>> Enroll(CreateEnrollmentDto createDto)
         {
             var enrollment = await _enrollmentService.EnrollStudent(createDto);
@@ -36,6 +39,7 @@ namespace StudentManagement.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Unenroll(int id)
         {
             var success = await _enrollmentService.UnenrollStudent(id);
